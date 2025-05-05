@@ -1,0 +1,41 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ai-code-review
+  datasource:
+    url: jdbc:h2:mem:aicodereviewdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+github:
+  webhook:
+    secret: ${GITHUB_WEBHOOK_SECRET:your-webhook-secret}
+  app:
+    id: ${GITHUB_APP_ID:your-app-id}
+    private-key: ${GITHUB_PRIVATE_KEY:your-private-key}
+
+openai:
+  api:
+    key: ${OPENAI_API_KEY:your-api-key}
+    model: gpt-4-turbo-preview
+    temperature: 0.7
+    max-tokens: 2000
+
+mcp:
+  rules:
+    path: classpath:mcp/rules/
+  cache:
+    enabled: true
+    ttl: 3600 # 1 hour in seconds 
