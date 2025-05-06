@@ -1,147 +1,110 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { 
-  CodeBracketIcon, 
-  ShieldCheckIcon, 
-  RocketLaunchIcon, 
-  DocumentTextIcon 
-} from '@heroicons/react/24/outline';
-import Container from '@mui/material/Container';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Grid from '@mui/material/Grid';
-import Box from '@mui/material/Box';
+import { Box, Container, Typography, Button, Grid, Paper } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import CodeIcon from '@mui/icons-material/Code';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import SpeedIcon from '@mui/icons-material/Speed';
+import SecurityIcon from '@mui/icons-material/Security';
 
 const features = [
   {
-    name: 'AI-Powered Code Review',
-    description: 'Automated code reviews using advanced AI to catch bugs, security issues, and suggest improvements.',
-    icon: CodeBracketIcon,
+    icon: <CodeIcon sx={{ fontSize: 40 }} />,
+    title: 'Smart Code Review',
+    description: 'AI-powered analysis of your code changes, providing intelligent suggestions for improvements.',
   },
   {
-    name: 'Security Analysis',
-    description: 'Comprehensive security vulnerability scanning and best practice enforcement.',
-    icon: ShieldCheckIcon,
+    icon: <AutoFixHighIcon sx={{ fontSize: 40 }} />,
+    title: 'Best Practices',
+    description: 'Get recommendations based on SOLID principles, design patterns, and coding standards.',
   },
   {
-    name: 'Performance Optimization',
-    description: 'Identify performance bottlenecks and suggest optimizations for better code efficiency.',
-    icon: RocketLaunchIcon,
+    icon: <SpeedIcon sx={{ fontSize: 40 }} />,
+    title: 'Quick Integration',
+    description: 'Simply paste your PR URL and get instant feedback on your code changes.',
   },
   {
-    name: 'Documentation & Testing',
-    description: 'Automated suggestions for documentation updates and test coverage improvements.',
-    icon: DocumentTextIcon,
+    icon: <SecurityIcon sx={{ fontSize: 40 }} />,
+    title: 'Security First',
+    description: 'Your code never leaves your environment. We analyze changes securely and privately.',
   },
 ];
 
 const Home: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <Box>
       {/* Hero Section */}
-      <Box sx={{ bgcolor: 'background.paper', py: { xs: 6, md: 10 } }}>
-        <Container maxWidth="lg">
-          <Box sx={{ maxWidth: 700, mx: { xs: 0, md: 'unset' } }}>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Typography variant="h2" component="h1" fontWeight={800} gutterBottom>
-                AI-Powered
-              </Typography>
-              <Typography variant="h2" component="span" fontWeight={800} color="primary" gutterBottom>
-                Code Review Assistant
-              </Typography>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <Typography variant="h6" color="text.secondary" sx={{ mt: 2, mb: 4 }}>
-                Automate your code review process with our intelligent AI assistant. Get instant feedback on code quality, security, and best practices.
-              </Typography>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-            >
-              <Button
-                variant="contained"
-                color="primary"
-                size="large"
-                href="/dashboard"
-                sx={{ px: 5, py: 1.5, fontWeight: 700 }}
-              >
-                Get Started
-              </Button>
-            </motion.div>
-          </Box>
+      <Box
+        sx={{
+          bgcolor: 'primary.main',
+          color: 'white',
+          py: 8,
+          mb: 6,
+          borderRadius: 2,
+        }}
+      >
+        <Container maxWidth="md">
+          <Typography variant="h2" component="h1" gutterBottom fontWeight="bold">
+            AI-Powered Code Review
+          </Typography>
+          <Typography variant="h5" component="h2" gutterBottom sx={{ mb: 4, opacity: 0.9 }}>
+            Get instant, intelligent feedback on your code changes. Improve code quality and catch issues early.
+          </Typography>
+          <Button
+            variant="contained"
+            size="large"
+            onClick={() => navigate('/review')}
+            sx={{
+              bgcolor: 'white',
+              color: 'primary.main',
+              '&:hover': {
+                bgcolor: 'grey.100',
+              },
+            }}
+          >
+            Start Reviewing Code
+          </Button>
         </Container>
       </Box>
 
       {/* Features Section */}
-      <Box sx={{ bgcolor: 'grey.50', py: 8 }}>
-        <Container maxWidth="lg">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-          >
-            <Typography variant="overline" color="primary" fontWeight={700}>
-              Features
-            </Typography>
-            <Typography variant="h4" fontWeight={800} sx={{ mt: 1, mb: 4 }}>
-              Everything you need for better code reviews
-            </Typography>
-          </motion.div>
-          <Grid container spacing={4}>
-            {features.map((feature, index) => (
-              <Grid item xs={12} md={6} key={feature.name}>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                >
-                  <Card elevation={2} sx={{ position: 'relative', pt: 7, pb: 2, px: 2, minHeight: 180 }}>
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        top: 12,
-                        left: 16,
-                        bgcolor: 'primary.main',
-                        borderRadius: '50%',
-                        width: 56,
-                        height: 56,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: 3,
-                        color: 'white',
-                        zIndex: 1,
-                      }}
-                    >
-                      <feature.icon style={{ width: 28, height: 28 }} />
-                    </Box>
-                    <CardContent>
-                      <Typography variant="h6" fontWeight={700} gutterBottom>
-                        {feature.name}
-                      </Typography>
-                      <Typography color="text.secondary">{feature.description}</Typography>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </Grid>
-            ))}
-          </Grid>
-        </Container>
-      </Box>
+      <Container maxWidth="lg">
+        <Typography variant="h3" component="h2" gutterBottom textAlign="center" mb={6}>
+          Why Choose ReviewBotics?
+        </Typography>
+        <Grid container spacing={4}>
+          {features.map((feature, index) => (
+            <Grid item xs={12} sm={6} md={3} key={index}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  '&:hover': {
+                    boxShadow: 2,
+                    transform: 'translateY(-4px)',
+                    transition: 'all 0.3s ease-in-out',
+                  },
+                }}
+              >
+                <Box sx={{ color: 'primary.main', mb: 2 }}>{feature.icon}</Box>
+                <Typography variant="h6" component="h3" gutterBottom>
+                  {feature.title}
+                </Typography>
+                <Typography color="text.secondary">{feature.description}</Typography>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
     </Box>
   );
 };
