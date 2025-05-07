@@ -8,7 +8,7 @@ spring:
     url: jdbc:h2:mem:aicodereviewdb
     driver-class-name: org.h2.Driver
     username: sa
-    password: password
+    password: 
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
@@ -18,24 +18,47 @@ spring:
     console:
       enabled: true
       path: /h2-console
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=3600s
 
-github:
-  webhook:
-    secret: ${GITHUB_WEBHOOK_SECRET:your-webhook-secret}
-  app:
-    id: ${GITHUB_APP_ID:your-app-id}
-    private-key: ${GITHUB_PRIVATE_KEY:your-private-key}
+logging:
+  level:
+    com.aicodereview: DEBUG
+    org.springframework: INFO
+
+llm:
+  provider: ${LLM_PROVIDER:ollama}  # Options: ollama, openai, anthropic, azure
+  ollama:
+    api:
+      url: http://localhost:11434
+      model: codellama
+      temperature: 0.7
+      max-tokens: 2000
+      timeout: 30000
 
 openai:
   api:
-    key: ${OPENAI_API_KEY:your-api-key}
-    model: gpt-4-turbo-preview
+    key: ${OPENAI_API_KEY:your-openai-api-key}
+    model: gpt-4
     temperature: 0.7
     max-tokens: 2000
+    timeout: 30000
 
 mcp:
   rules:
     path: classpath:mcp/rules/
   cache:
     enabled: true
-    ttl: 3600 # 1 hour in seconds 
+    ttl: 3600 # 1 hour in seconds
+
+github:
+  webhook:
+    secret: ${GITHUB_WEBHOOK_SECRET:your-webhook-secret}
+    enabled: true
+    path: /api/webhook/github
+  app:
+    id: ${GITHUB_APP_ID:your-app-id}
+    private-key: ${GITHUB_PRIVATE_KEY:your-private-key}
+  token: ${GITHUB_TOKEN:your-github-token} 

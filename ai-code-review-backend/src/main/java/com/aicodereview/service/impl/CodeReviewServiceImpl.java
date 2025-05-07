@@ -2,72 +2,150 @@ package com.aicodereview.service.impl;
 
 import com.aicodereview.model.CodeReview;
 import com.aicodereview.model.ReviewStatus;
-import com.aicodereview.repository.CodeReviewRepository;
-import com.aicodereview.service.CodeReviewService;
-import com.aicodereview.service.GitHubService;
+import com.aicodereview.model.ReviewComment;
 import com.aicodereview.service.AIReviewService;
+import com.aicodereview.service.CodeReviewService;
+import com.aicodereview.service.GitHubPRService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class CodeReviewServiceImpl implements CodeReviewService {
 
-    private final CodeReviewRepository codeReviewRepository;
-    private final GitHubService gitHubService;
     private final AIReviewService aiReviewService;
+    private final GitHubPRService gitHubPRService;
+    private final Map<Long, CodeReview> reviews = new ConcurrentHashMap<>();
+    private final AtomicLong idGenerator = new AtomicLong(1);
 
     @Override
-    @Transactional
-    public CodeReview createReview(String repositoryName, String pullRequestId, String commitSha) {
+    public CodeReview createReview(CodeReview review) {
+        review.setId(idGenerator.getAndIncrement());
+        review.setCreatedAt(LocalDateTime.now());
+        review.setStatus(ReviewStatus.PENDING);
+        reviews.put(review.getId(), review);
+        return review;
+    }
+
+    @Override
+    public CodeReview getReview(Long id) {
+        return Optional.ofNullable(reviews.get(id))
+                .orElseThrow(() -> new RuntimeException("Review not found"));
+    }
+
+    @Override
+    public List<CodeReview> getAllReviews() {
+        return new ArrayList<>(reviews.values());
+    }
+
+    @Override
+    public CodeReview updateReview(Long id, CodeReview review) {
+        CodeReview existingReview = getReview(id);
+        // Update fields
+        existingReview.setTitle(review.getTitle());
+        existingReview.setDescription(review.getDescription());
+        existingReview.setComments(review.getComments());
+        existingReview.setDocumentationSuggestions(review.getDocumentationSuggestions());
+        existingReview.setTestSuggestions(review.getTestSuggestions());
+        existingReview.setRefactoringSuggestions(review.getRefactoringSuggestions());
+        existingReview.setQualityAnalysis(review.getQualityAnalysis());
+        reviews.put(id, existingReview);
+        return existingReview;
+    }
+
+    @Override
+    public void deleteReview(Long id) {
+        reviews.remove(id);
+    }
+
+    @Override
+    public CodeReview reviewPullRequest(String repositoryName, String pullRequestId) {
+        log.info("Starting review for PR {} in repository {}", pullRequestId, repositoryName);
+        
+        // Create new review
         CodeReview review = new CodeReview();
         review.setRepositoryName(repositoryName);
         review.setPullRequestId(pullRequestId);
-        review.setCommitSha(commitSha);
-        review.setStatus(ReviewStatus.PENDING);
-        return codeReviewRepository.save(review);
+        review.setStatus(ReviewStatus.IN_PROGRESS);
+        review = createReview(review);
+
+        try {
+            // Get PR details
+            CodeReview prDetails = gitHubPRService.fetchPullRequestDetails(repositoryName, pullRequestId);
+            review.setTitle(prDetails.getTitle());
+            review.setDescription(prDetails.getDescription());
+            review.setAuthor(prDetails.getAuthor());
+            review.setBaseBranch(prDetails.getBaseBranch());
+            review.setHeadBranch(prDetails.getHeadBranch());
+            review.setCommitSha(prDetails.getCommitSha());
+
+            // Get PR diff
+            String diff = gitHubPRService.getPullRequestDiff(repositoryName, pullRequestId);
+            
+            // Process with AI
+            List<ReviewComment> comments = aiReviewService.reviewPullRequest(
+                repositoryName,
+                pullRequestId,
+                "Full code review"
+            );
+            review.setComments(comments);
+
+            // Get documentation suggestions
+            List<String> docSuggestions = aiReviewService.generateDocumentationSuggestions(diff);
+            review.setDocumentationSuggestions(String.join("\n", docSuggestions));
+
+            // Get test suggestions
+            List<String> testSuggestions = aiReviewService.generateTestSuggestions(diff);
+            review.setTestSuggestions(String.join("\n", testSuggestions));
+
+            // Get refactoring suggestions
+            String refactoringSuggestions = aiReviewService.generateRefactoringSuggestions(diff);
+            review.setRefactoringSuggestions(refactoringSuggestions);
+
+            // Get code quality analysis
+            Map<String, String> qualityAnalysis = aiReviewService.analyzeCodeQuality(diff);
+            review.setQualityAnalysis(qualityAnalysis.toString());
+
+            // Get suggested reviewers
+            List<String> suggestedReviewers = gitHubPRService.suggestReviewers(repositoryName, pullRequestId);
+            review.setSuggestedReviewers(String.join(",", suggestedReviewers));
+
+            // Update status
+            review.setStatus(ReviewStatus.COMPLETED);
+            review.setCompletedAt(LocalDateTime.now());
+            
+            return updateReview(review.getId(), review);
+        } catch (Exception e) {
+            log.error("Error reviewing PR", e);
+            review.setStatus(ReviewStatus.FAILED);
+            updateReview(review.getId(), review);
+            throw new RuntimeException("Failed to review PR", e);
+        }
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public CodeReview getReview(Long id) {
-        return codeReviewRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Review not found: " + id));
-    }
-
-    @Override
-    @Transactional
     public CodeReview updateReviewStatus(Long id, ReviewStatus status) {
         CodeReview review = getReview(id);
         review.setStatus(status);
-        return codeReviewRepository.save(review);
+        if (status == ReviewStatus.COMPLETED) {
+            review.setCompletedAt(LocalDateTime.now());
+        }
+        return updateReview(id, review);
     }
 
     @Override
-    @Transactional
     public void processReview(Long id) {
         CodeReview review = getReview(id);
-        try {
-            review.setStatus(ReviewStatus.IN_PROGRESS);
-            codeReviewRepository.save(review);
-
-            // Get PR diff from GitHub
-            String diff = gitHubService.getPullRequestDiff(
-                review.getRepositoryName(),
-                review.getPullRequestId()
-            );
-
-            // Process with AI
-            aiReviewService.analyzeCode(diff, review);
-
-            review.setStatus(ReviewStatus.COMPLETED);
-        } catch (Exception e) {
-            log.error("Error processing review: " + id, e);
-            review.setStatus(ReviewStatus.FAILED);
+        if (review.getStatus() != ReviewStatus.PENDING) {
+            throw new RuntimeException("Review is not in PENDING status");
         }
-        codeReviewRepository.save(review);
+        updateReviewStatus(id, ReviewStatus.IN_PROGRESS);
+        // Additional processing logic here
     }
 } 

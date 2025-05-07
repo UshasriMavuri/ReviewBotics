@@ -1,48 +1,35 @@
 package com.aicodereview.model;
 
-import jakarta.persistence.*;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
-@Entity
-@Table(name = "code_reviews")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class CodeReview {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false)
     private String repositoryName;
-
-    @Column(nullable = false)
     private String pullRequestId;
-
-    @Column(nullable = false)
-    private String commitSha;
-
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-
-    @Column(nullable = false)
-    private LocalDateTime updatedAt;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    private String title;
+    private String description;
+    private String author;
     private ReviewStatus status;
-
-    @OneToMany(mappedBy = "codeReview", cascade = CascadeType.ALL)
     private List<ReviewComment> comments;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
+    private String documentationSuggestions;
+    private String testSuggestions;
+    private String refactoringSuggestions;
+    private String qualityAnalysis;
+    private String suggestedReviewers;
+    private LocalDateTime createdAt;
+    private LocalDateTime completedAt;
+    private String code;
+    private String baseBranch;
+    private String headBranch;
+    private String mcpContext;
+    private String commitSha;
 } 
