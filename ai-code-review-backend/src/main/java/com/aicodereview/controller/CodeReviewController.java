@@ -2,6 +2,8 @@ package com.aicodereview.controller;
 
 import com.aicodereview.model.CodeReview;
 import com.aicodereview.service.CodeReviewService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +13,7 @@ import java.util.List;
 @RequestMapping("/api")
 @CrossOrigin(origins = "http://localhost:3000")
 public class CodeReviewController {
+    private static final Logger logger = LoggerFactory.getLogger(CodeReviewController.class);
 
     @Autowired
     private CodeReviewService codeReviewService;
@@ -23,11 +26,28 @@ public class CodeReviewController {
     }
 
     @PostMapping("/pr/review")
-    public ResponseEntity<CodeReview> reviewPullRequest(@RequestBody PRReviewRequest request) {
-        return ResponseEntity.ok(codeReviewService.reviewPullRequest(
-            request.getRepositoryName(),
-            request.getPullRequestId()
-        ));
+    public ResponseEntity<?> reviewPullRequest(@RequestBody PRReviewRequest request) {
+        try {
+            logger.info("Received PR review request for repository: {} and PR ID: {}", 
+                request.getRepositoryName(), request.getPullRequestId());
+            
+            if (request.getRepositoryName() == null || request.getPullRequestId() == null) {
+                logger.error("Missing required parameters: repositoryName or pullRequestId");
+                return ResponseEntity.badRequest().body("Missing required parameters");
+            }
+
+            CodeReview review = codeReviewService.reviewPullRequest(
+                request.getRepositoryName(),
+                request.getPullRequestId()
+            );
+            
+            logger.info("Successfully completed PR review");
+            return ResponseEntity.ok(review);
+        } catch (Exception e) {
+            logger.error("Error processing PR review request", e);
+            return ResponseEntity.internalServerError()
+                .body("Error processing request: " + e.getMessage());
+        }
     }
 
     @GetMapping("/reviews/{id}")

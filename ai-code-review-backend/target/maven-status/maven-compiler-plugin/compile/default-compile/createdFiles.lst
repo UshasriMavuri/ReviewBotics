@@ -5,6 +5,7 @@ com/aicodereview/service/impl/AIReviewServiceImpl.class
 com/aicodereview/config/LLMConfig$AnthropicConfig.class
 com/aicodereview/config/HuggingFaceConfig.class
 com/aicodereview/service/impl/OpenAIService.class
+com/aicodereview/config/LLMServiceConfig.class
 com/aicodereview/controller/TestController.class
 com/aicodereview/config/OllamaConfig$ApiConfig.class
 com/aicodereview/config/CacheConfig.class
@@ -13,13 +14,12 @@ com/aicodereview/config/RestTemplateConfig.class
 com/aicodereview/controller/PRReviewRequest.class
 com/aicodereview/service/GitHubService.class
 com/aicodereview/model/ReviewComment.class
-com/aicodereview/service/impl/OllamaService.class
 com/aicodereview/controller/WebhookController.class
 com/aicodereview/service/LLMService.class
 com/aicodereview/config/WebConfig.class
 com/aicodereview/service/impl/GitHubServiceImpl.class
 com/aicodereview/service/MCPService.class
-com/aicodereview/controller/PRReviewController.class
+com/aicodereview/service/impl/OllamaServiceImpl.class
 com/aicodereview/service/GitHubPRService.class
 com/aicodereview/service/CodeReviewService.class
 com/aicodereview/model/CodeReview.class

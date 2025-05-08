@@ -4,15 +4,11 @@ import com.aicodereview.model.ReviewComment;
 import com.aicodereview.model.CommentType;
 import com.aicodereview.service.AIReviewService;
 import com.aicodereview.service.GitHubPRService;
-import com.theokanning.openai.completion.chat.ChatCompletionRequest;
-import com.theokanning.openai.completion.chat.ChatMessage;
-import com.theokanning.openai.service.OpenAiService;
+import com.aicodereview.service.LLMService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -22,26 +18,13 @@ import java.util.stream.Collectors;
 public class AIReviewServiceImpl implements AIReviewService {
 
     private final GitHubPRService gitHubPRService;
-
-    @Value("${openai.api.key}")
-    private String openaiApiKey;
-
-    @Value("${openai.api.model}")
-    private String openaiModel;
-
-    @Value("${openai.api.temperature}")
-    private Double temperature;
-
-    @Value("${openai.api.max-tokens}")
-    private Integer maxTokens;
-
-    private OpenAiService openAiService;
+    private final LLMService llmService;
 
     @Override
     public List<ReviewComment> reviewCode(String code, String filePath, String mcpContext) {
         try {
             String prompt = buildReviewPrompt(code, filePath, mcpContext);
-            String response = getAIResponse(prompt);
+            String response = llmService.generateCodeReview(code, mcpContext);
             return parseReviewResponse(response, filePath);
         } catch (Exception e) {
             log.error("Error reviewing code", e);
@@ -53,8 +36,7 @@ public class AIReviewServiceImpl implements AIReviewService {
     public List<ReviewComment> reviewPullRequest(String repositoryName, String pullRequestId, String mcpContext) {
         try {
             String diff = gitHubPRService.getPullRequestDiff(repositoryName, pullRequestId);
-            String prompt = buildPRReviewPrompt(diff, mcpContext);
-            String response = getAIResponse(prompt);
+            String response = llmService.generateCodeReview(diff, mcpContext);
             return parseReviewResponse(response, null);
         } catch (Exception e) {
             log.error("Error reviewing pull request", e);
@@ -66,7 +48,7 @@ public class AIReviewServiceImpl implements AIReviewService {
     public String generateReviewSummary(List<ReviewComment> comments) {
         try {
             String prompt = buildSummaryPrompt(comments);
-            return getAIResponse(prompt);
+            return llmService.generateCodeReview(prompt, "Summary generation");
         } catch (Exception e) {
             log.error("Error generating review summary", e);
             throw new RuntimeException("Failed to generate review summary", e);
@@ -76,8 +58,7 @@ public class AIReviewServiceImpl implements AIReviewService {
     @Override
     public List<String> suggestTests(String code, String filePath) {
         try {
-            String prompt = buildTestSuggestionPrompt(code, filePath);
-            String response = getAIResponse(prompt);
+            String response = llmService.generateTestSuggestions(code);
             return parseListResponse(response);
         } catch (Exception e) {
             log.error("Error suggesting tests", e);
@@ -88,8 +69,7 @@ public class AIReviewServiceImpl implements AIReviewService {
     @Override
     public List<String> suggestDocumentation(String code, String filePath) {
         try {
-            String prompt = buildDocumentationPrompt(code, filePath);
-            String response = getAIResponse(prompt);
+            String response = llmService.generateDocumentationSuggestions(code);
             return parseListResponse(response);
         } catch (Exception e) {
             log.error("Error suggesting documentation", e);
@@ -100,8 +80,7 @@ public class AIReviewServiceImpl implements AIReviewService {
     @Override
     public List<String> suggestRefactoring(String code, String filePath) {
         try {
-            String prompt = buildRefactoringPrompt(code, filePath);
-            String response = getAIResponse(prompt);
+            String response = llmService.generateRefactoringSuggestions(code);
             return parseListResponse(response);
         } catch (Exception e) {
             log.error("Error suggesting refactoring", e);
@@ -112,8 +91,7 @@ public class AIReviewServiceImpl implements AIReviewService {
     @Override
     public List<String> generateDocumentationSuggestions(String code) {
         try {
-            String prompt = buildDocumentationPrompt(code, "file");
-            String response = getAIResponse(prompt);
+            String response = llmService.generateDocumentationSuggestions(code);
             return parseListResponse(response);
         } catch (Exception e) {
             log.error("Error generating documentation suggestions", e);
@@ -124,8 +102,7 @@ public class AIReviewServiceImpl implements AIReviewService {
     @Override
     public List<String> generateTestSuggestions(String code) {
         try {
-            String prompt = buildTestSuggestionPrompt(code, "file");
-            String response = getAIResponse(prompt);
+            String response = llmService.generateTestSuggestions(code);
             return parseListResponse(response);
         } catch (Exception e) {
             log.error("Error generating test suggestions", e);
@@ -136,8 +113,7 @@ public class AIReviewServiceImpl implements AIReviewService {
     @Override
     public String generateRefactoringSuggestions(String code) {
         try {
-            String prompt = buildRefactoringPrompt(code, "file");
-            return getAIResponse(prompt);
+            return llmService.generateRefactoringSuggestions(code);
         } catch (Exception e) {
             log.error("Error generating refactoring suggestions", e);
             throw new RuntimeException("Failed to generate refactoring suggestions", e);
@@ -147,15 +123,7 @@ public class AIReviewServiceImpl implements AIReviewService {
     @Override
     public Map<String, String> analyzeCodeQuality(String code) {
         try {
-            String prompt = String.format("""
-                Analyze the code quality of the following code:
-                
-                %s
-                
-                Provide analysis in the format:
-                METRIC|SCORE|DESCRIPTION
-                """, code);
-            String response = getAIResponse(prompt);
+            String response = llmService.analyzeCodeQuality(code);
             return parseQualityAnalysis(response);
         } catch (Exception e) {
             log.error("Error analyzing code quality", e);
@@ -172,9 +140,15 @@ public class AIReviewServiceImpl implements AIReviewService {
             Code:
             %s
             
-            Provide a detailed review with specific line numbers and suggestions for improvement.
-            Format each comment as:
-            LINE_NUMBER|TYPE|SEVERITY|CATEGORY|COMMENT|SUGGESTED_FIX
+            Provide a concise review focusing on critical issues only. Format each comment as:
+            FILENAME: ISSUE_DESCRIPTION
+            
+            For example:
+            UserService.java: Missing null check for user input.
+            LoginController.java: Avoid logging sensitive info like passwords.
+            UserServiceTest.java: No tests added for deleteUser method.
+            
+            Only include comments for actual issues found. If no issues are found, return an empty list.
             """, mcpContext, filePath, code);
     }
 
@@ -186,9 +160,15 @@ public class AIReviewServiceImpl implements AIReviewService {
             Diff:
             %s
             
-            Provide a detailed review with specific line numbers and suggestions for improvement.
-            Format each comment as:
-            FILE_PATH|LINE_NUMBER|TYPE|SEVERITY|CATEGORY|COMMENT|SUGGESTED_FIX
+            Provide a concise review focusing on critical issues only. Format each comment as:
+            FILENAME: ISSUE_DESCRIPTION
+            
+            For example:
+            UserService.java: Missing null check for user input.
+            LoginController.java: Avoid logging sensitive info like passwords.
+            UserServiceTest.java: No tests added for deleteUser method.
+            
+            Only include comments for actual issues found. If no issues are found, return an empty list.
             """, mcpContext, diff);
     }
 
@@ -201,84 +181,31 @@ public class AIReviewServiceImpl implements AIReviewService {
         return prompt.toString();
     }
 
-    private String buildTestSuggestionPrompt(String code, String filePath) {
-        return String.format("""
-            Suggest unit tests for the following code:
-            
-            File: %s
-            Code:
-            %s
-            
-            Provide specific test cases that should be implemented.
-            Format each suggestion as a separate line.
-            """, filePath, code);
-    }
-
-    private String buildDocumentationPrompt(String code, String filePath) {
-        return String.format("""
-            Suggest documentation improvements for the following code:
-            
-            File: %s
-            Code:
-            %s
-            
-            Provide specific documentation suggestions.
-            Format each suggestion as a separate line.
-            """, filePath, code);
-    }
-
-    private String buildRefactoringPrompt(String code, String filePath) {
-        return String.format("""
-            Suggest refactoring improvements for the following code:
-            
-            File: %s
-            Code:
-            %s
-            
-            Provide specific refactoring suggestions with code examples.
-            Format each suggestion as a separate line.
-            """, filePath, code);
-    }
-
-    private String getAIResponse(String prompt) {
-        if (openAiService == null) {
-            openAiService = new OpenAiService(openaiApiKey, Duration.ofSeconds(30));
-        }
-
-        ChatMessage message = new ChatMessage("user", prompt);
-        ChatCompletionRequest request = ChatCompletionRequest.builder()
-                .model(openaiModel)
-                .messages(Collections.singletonList(message))
-                .temperature(temperature)
-                .maxTokens(maxTokens)
-                .build();
-
-        return openAiService.createChatCompletion(request)
-                .getChoices().get(0).getMessage().getContent();
-    }
-
     private List<ReviewComment> parseReviewResponse(String response, String defaultFilePath) {
         List<ReviewComment> comments = new ArrayList<>();
         String[] lines = response.split("\n");
 
         for (String line : lines) {
-            if (line.trim().isEmpty()) continue;
-
-            String[] parts = line.split("\\|");
-            if (parts.length < 5) continue;
-
-            ReviewComment comment = new ReviewComment();
-            comment.setFilePath(parts.length > 5 ? parts[0] : defaultFilePath);
-            comment.setLineNumber(Integer.parseInt(parts.length > 5 ? parts[1] : parts[0]));
-            comment.setType(CommentType.valueOf(parts.length > 5 ? parts[2] : parts[1]));
-            comment.setSeverity(parts.length > 5 ? parts[3] : parts[2]);
-            comment.setCategory(parts.length > 5 ? parts[4] : parts[3]);
-            comment.setComment(parts.length > 5 ? parts[5] : parts[4]);
-            if (parts.length > 6) {
-                comment.setSuggestedFix(parts[6]);
+            line = line.trim();
+            if (line.isEmpty() || line.startsWith("For example:") || line.startsWith("Only include")) {
+                continue;
             }
 
-            comments.add(comment);
+            // Parse lines in the format "FILENAME: ISSUE_DESCRIPTION"
+            int colonIndex = line.indexOf(':');
+            if (colonIndex > 0) {
+                String filePath = line.substring(0, colonIndex).trim();
+                String comment = line.substring(colonIndex + 1).trim();
+
+                ReviewComment reviewComment = new ReviewComment();
+                reviewComment.setFilePath(filePath);
+                reviewComment.setComment(comment);
+                reviewComment.setType(CommentType.CODE_SMELL);
+                reviewComment.setSeverity("MEDIUM");
+                reviewComment.setCategory("CODE_QUALITY");
+
+                comments.add(reviewComment);
+            }
         }
 
         return comments;

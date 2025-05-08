@@ -33,11 +33,10 @@ public class OpenAIService implements LLMService {
     }
 
     @Override
-    public List<String> generateTestSuggestions(String code) {
+    public String generateTestSuggestions(String code) {
         try {
             String prompt = buildTestSuggestionPrompt(code);
-            String response = getAIResponse(prompt);
-            return Arrays.asList(response.split("\n"));
+            return getAIResponse(prompt);
         } catch (Exception e) {
             log.error("Error generating test suggestions", e);
             throw new RuntimeException("Failed to generate test suggestions", e);
@@ -45,11 +44,10 @@ public class OpenAIService implements LLMService {
     }
 
     @Override
-    public List<String> generateDocumentationSuggestions(String code) {
+    public String generateDocumentationSuggestions(String code) {
         try {
             String prompt = buildDocumentationPrompt(code);
-            String response = getAIResponse(prompt);
-            return Arrays.asList(response.split("\n"));
+            return getAIResponse(prompt);
         } catch (Exception e) {
             log.error("Error generating documentation suggestions", e);
             throw new RuntimeException("Failed to generate documentation suggestions", e);
@@ -57,11 +55,10 @@ public class OpenAIService implements LLMService {
     }
 
     @Override
-    public Map<String, String> analyzeCodeQuality(String code) {
+    public String analyzeCodeQuality(String code) {
         try {
             String prompt = buildCodeQualityPrompt(code);
-            String response = getAIResponse(prompt);
-            return parseCodeQualityResponse(response);
+            return getAIResponse(prompt);
         } catch (Exception e) {
             log.error("Error analyzing code quality", e);
             throw new RuntimeException("Failed to analyze code quality", e);

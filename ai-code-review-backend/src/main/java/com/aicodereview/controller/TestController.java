@@ -21,17 +21,17 @@ public class TestController {
     }
 
     @PostMapping("/tests")
-    public ResponseEntity<List<String>> testTestSuggestions(@RequestBody String code) {
+    public ResponseEntity<String> testTestSuggestions(@RequestBody String code) {
         return ResponseEntity.ok(llmService.generateTestSuggestions(code));
     }
 
     @PostMapping("/docs")
-    public ResponseEntity<List<String>> testDocumentationSuggestions(@RequestBody String code) {
+    public ResponseEntity<String> testDocumentationSuggestions(@RequestBody String code) {
         return ResponseEntity.ok(llmService.generateDocumentationSuggestions(code));
     }
 
     @PostMapping("/quality")
-    public ResponseEntity<Map<String, String>> testCodeQuality(@RequestBody String code) {
+    public ResponseEntity<String> testCodeQuality(@RequestBody String code) {
         return ResponseEntity.ok(llmService.analyzeCodeQuality(code));
     }
 

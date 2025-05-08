@@ -17,11 +17,20 @@ import java.util.*;
 import java.time.Instant;
 import java.security.*;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.JWTCreationException;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import org.springframework.core.env.Environment;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class GitHubPRServiceImpl implements GitHubPRService {
 
     @Value("${github.app.id}")
@@ -31,107 +40,206 @@ public class GitHubPRServiceImpl implements GitHubPRService {
     private String privateKey;
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
+    private final Environment environment;
     private String installationToken;
+    private final RestTemplate restTemplate;
 
-    private String generateJWT() throws Exception {
-        Instant now = Instant.now();
-        Instant expiration = now.plusSeconds(600); // 10 minutes
-
-        String header = Base64.getEncoder().encodeToString(
-            objectMapper.writeValueAsString(Map.of(
-                "alg", "RS256",
-                "typ", "JWT"
-            )).getBytes()
-        );
-
-        String payload = Base64.getEncoder().encodeToString(
-            objectMapper.writeValueAsString(Map.of(
-                "iat", now.getEpochSecond(),
-                "exp", expiration.getEpochSecond(),
-                "iss", appId
-            )).getBytes()
-        );
-
-        String privateKeyPEM = privateKey
-            .replace("-----BEGIN PRIVATE KEY-----", "")
-            .replace("-----END PRIVATE KEY-----", "")
-            .replaceAll("\\s", "");
-
-        byte[] privateKeyBytes = Base64.getDecoder().decode(privateKeyPEM);
-        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        PrivateKey key = keyFactory.generatePrivate(keySpec);
-
-        Signature signature = Signature.getInstance("SHA256withRSA");
-        signature.initSign(key);
-        signature.update((header + "." + payload).getBytes());
-
-        String signatureBase64 = Base64.getEncoder().encodeToString(signature.sign());
-        return header + "." + payload + "." + signatureBase64;
+    @Autowired
+    public GitHubPRServiceImpl(RestTemplate restTemplate, ObjectMapper objectMapper, Environment environment) {
+        this.restTemplate = restTemplate;
+        this.objectMapper = objectMapper;
+        this.environment = environment;
+        
+        // Initialize BouncyCastle provider
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleProvider());
+            log.info("BouncyCastle provider initialized");
+        }
     }
 
-    private String getInstallationToken(String repositoryName) throws Exception {
-        String[] parts = repositoryName.split("/");
-        String owner = parts[0];
+    private String generateJWT() {
+        try {
+            log.info("Generating JWT for GitHub App authentication");
+            String appId = environment.getProperty("github.app.id");
+            String privateKey = environment.getProperty("github.app.private-key");
 
-        // Get installation ID
-        String jwt = generateJWT();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://api.github.com/app/installations"))
-                .header("Authorization", "Bearer " + jwt)
-                .header("Accept", "application/vnd.github.v3+json")
-                .GET()
-                .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        List<Map<String, Object>> installations = objectMapper.readValue(response.body(), List.class);
-        
-        String installationId = null;
-        for (Map<String, Object> installation : installations) {
-            Map<String, Object> account = (Map<String, Object>) installation.get("account");
-            if (owner.equals(account.get("login"))) {
-                installationId = installation.get("id").toString();
-                break;
+            if (appId == null || appId.isEmpty() || privateKey == null || privateKey.isEmpty()) {
+                throw new IllegalArgumentException("GitHub App ID or private key is not configured");
             }
+
+            log.info("Original private key length: {}", privateKey.length());
+            log.info("Original private key format check - contains BEGIN marker: {}", privateKey.contains("-----BEGIN PRIVATE KEY-----"));
+            log.info("Original private key format check - contains END marker: {}", privateKey.contains("-----END PRIVATE KEY-----"));
+
+            // Clean the private key by removing the PEM markers and whitespace
+            String cleanedKey = privateKey
+                .replace("-----BEGIN PRIVATE KEY-----", "")
+                .replace("-----END PRIVATE KEY-----", "")
+                .replaceAll("\\s", "");
+
+            log.info("Cleaned private key length: {}", cleanedKey.length());
+            log.info("Cleaned private key first 50 chars: {}", cleanedKey.substring(0, Math.min(50, cleanedKey.length())));
+
+            // Decode the Base64 private key
+            byte[] decodedKey = Base64.getDecoder().decode(cleanedKey);
+            log.info("Decoded key length: {} bytes", decodedKey.length);
+
+            // Create PKCS8EncodedKeySpec
+            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(decodedKey);
+            log.info("Created PKCS8EncodedKeySpec");
+
+            // Get RSA KeyFactory with BouncyCastle provider
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA", BouncyCastleProvider.PROVIDER_NAME);
+            log.info("Created RSA KeyFactory with BouncyCastle provider");
+
+            // Generate private key
+            PrivateKey key = keyFactory.generatePrivate(keySpec);
+            log.info("Generated private key");
+
+            // Create JWT using only the private key
+            Algorithm algorithm = Algorithm.RSA256(null, (RSAPrivateKey) key);
+            Instant now = Instant.now();
+            String jwt = JWT.create()
+                .withIssuer(appId)
+                .withIssuedAt(Date.from(now))
+                .withExpiresAt(Date.from(now.plusSeconds(600))) // 10 minutes
+                .withClaim("iat", now.getEpochSecond())
+                .withClaim("exp", now.plusSeconds(600).getEpochSecond())
+                .sign(algorithm);
+
+            log.info("Successfully generated JWT");
+            return jwt;
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException | NoSuchProviderException e) {
+            log.error("Invalid key specification: {}", e.getMessage());
+            log.error("Stack trace:", e);
+            throw new RuntimeException("Failed to generate JWT: " + e.getMessage(), e);
+        } catch (JWTCreationException e) {
+            log.error("JWT creation error: {}", e.getMessage());
+            log.error("Stack trace:", e);
+            throw new RuntimeException("Failed to generate JWT: " + e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("Unexpected error generating JWT: {}", e.getMessage());
+            log.error("Stack trace:", e);
+            throw new RuntimeException("Failed to generate JWT: " + e.getMessage(), e);
         }
+    }
 
-        if (installationId == null) {
-            throw new RuntimeException("GitHub App is not installed on this repository. Please install the app first.");
+    private String getInstallationToken(String repositoryName) {
+        try {
+            log.info("Getting installation token for repository: {}", repositoryName);
+            
+            // Generate JWT for GitHub App authentication
+            String jwt = generateJWT();
+            if (jwt == null) {
+                log.error("Failed to generate JWT for GitHub App authentication");
+                return null;
+            }
+            
+            // Get installation ID
+            String[] parts = repositoryName.split("/");
+            if (parts.length != 2) {
+                log.error("Invalid repository name format: {}", repositoryName);
+                return null;
+            }
+            
+            String owner = parts[0];
+            String url = String.format("https://api.github.com/repos/%s/installation", repositoryName);
+            log.debug("Making request to get installation ID: {}", url);
+            
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Authorization", "Bearer " + jwt)
+                    .header("Accept", "application/vnd.github.v3+json")
+                    .header("User-Agent", environment.getProperty("github.app.name", "ReviewBotics"))
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            log.debug("GitHub API response status for installation ID: {}", response.statusCode());
+            log.debug("GitHub API response body: {}", response.body());
+            
+            if (response.statusCode() != 200) {
+                log.error("Failed to get installation ID. Status: {}, Response: {}", response.statusCode(), response.body());
+                return null;
+            }
+
+            Map<String, Object> installationData = objectMapper.readValue(response.body(), Map.class);
+            String installationId = installationData.get("id").toString();
+            log.debug("Found installation ID: {}", installationId);
+
+            // Get installation token
+            url = String.format("https://api.github.com/app/installations/%s/access_tokens", installationId);
+            log.debug("Making request to get installation token: {}", url);
+            
+            request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Authorization", "Bearer " + jwt)
+                    .header("Accept", "application/vnd.github.v3+json")
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build();
+
+            response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            log.debug("GitHub API response status for installation token: {}", response.statusCode());
+            
+            if (response.statusCode() != 201) {
+                log.error("Failed to get installation token. Status: {}, Response: {}", response.statusCode(), response.body());
+                return null;
+            }
+
+            Map<String, Object> tokenData = objectMapper.readValue(response.body(), Map.class);
+            String token = (String) tokenData.get("token");
+            
+            if (token == null) {
+                log.error("No token found in response for repository: {}", repositoryName);
+                return null;
+            }
+
+            log.info("Successfully obtained installation token for repository: {}", repositoryName);
+            return token;
+        } catch (Exception e) {
+            log.error("Error getting installation token for repository: {}", repositoryName, e);
+            return null;
         }
-
-        // Get installation token
-        request = HttpRequest.newBuilder()
-                .uri(URI.create("https://api.github.com/app/installations/" + installationId + "/access_tokens"))
-                .header("Authorization", "Bearer " + jwt)
-                .header("Accept", "application/vnd.github.v3+json")
-                .POST(HttpRequest.BodyPublishers.noBody())
-                .build();
-
-        response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        Map<String, Object> tokenResponse = objectMapper.readValue(response.body(), Map.class);
-        return (String) tokenResponse.get("token");
     }
 
     @Override
     public CodeReview fetchPullRequestDetails(String repositoryName, String pullRequestId) {
         try {
+            log.info("Fetching PR details for repository: {} and PR ID: {}", repositoryName, pullRequestId);
+            
             String token = getInstallationToken(repositoryName);
+            if (token == null) {
+                log.error("Failed to get installation token for repository: {}", repositoryName);
+                throw new RuntimeException("Failed to authenticate with GitHub. Please check your GitHub App credentials.");
+            }
+            
             String url = String.format("https://api.github.com/repos/%s/pulls/%s", repositoryName, pullRequestId);
+            log.debug("Making request to GitHub API: {}", url);
+            
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .header("Authorization", "token " + token)
                     .header("Accept", "application/vnd.github.v3+json")
+                    .header("User-Agent", environment.getProperty("github.app.name", "AI-Code-Review-Bot"))
                     .GET()
                     .build();
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            log.debug("GitHub API response status: {}", response.statusCode());
             
             if (response.statusCode() == 404) {
+                log.error("Repository or PR not found. Repository: {}, PR ID: {}", repositoryName, pullRequestId);
                 throw new RuntimeException("Repository or PR not found. Make sure the repository exists and the app has access.");
             }
             
+            if (response.statusCode() == 401 || response.statusCode() == 403) {
+                log.error("Authentication failed. Status: {}, Response: {}", response.statusCode(), response.body());
+                throw new RuntimeException("Authentication failed. Please check your GitHub App credentials and permissions.");
+            }
+            
             if (response.statusCode() != 200) {
+                log.error("Failed to fetch PR details. Status: {}, Response: {}", response.statusCode(), response.body());
                 throw new RuntimeException("Failed to fetch PR details: " + response.body());
             }
 
@@ -150,9 +258,10 @@ public class GitHubPRServiceImpl implements GitHubPRService {
             review.setTitle((String) prData.get("title"));
             review.setDescription((String) prData.get("body"));
 
+            log.info("Successfully fetched PR details for repository: {} and PR ID: {}", repositoryName, pullRequestId);
             return review;
         } catch (Exception e) {
-            log.error("Error fetching PR details", e);
+            log.error("Error fetching PR details for repository: {} and PR ID: {}", repositoryName, pullRequestId, e);
             throw new RuntimeException("Failed to fetch PR details: " + e.getMessage());
         }
     }
