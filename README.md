@@ -25,23 +25,23 @@ The solution consists of a modern React frontend and a robust Spring Boot backen
 > _Replace the image paths with your actual screenshot files in the repo (e.g., `/screenshots/home.png`)._
 
 ### Home Screen
-![Home Screen](ai-code-review-frontend/public/screenshots/home.png)
+![Home Screen](ai-code-review-frontend/public/HomeScreen.png)
 *Landing page highlighting features and call-to-action.*
 
 ### In Progress
-![In Progress](ai-code-review-frontend/public/screenshots/inprogress.png)
+![In Progress](ai-code-review-frontend/public/inprogress.png)
 *Shows loading or review in progress state after submitting a PR URL.*
 
 ### Review Page
-![Review Page](ai-code-review-frontend/public/screenshots/review-page.png)
+![Review Page](ai-code-review-frontend/public/ReviewPage.png)
 *Paste a PR URL, view instant AI-powered review feedback, and see inline suggestions.*
 
 ### Review Result Expanded
-![Review Result Expanded](ai-code-review-frontend/public/screenshots/review-result-expanded.png)
+![Review Result Expanded](ai-code-review-frontend/public/ResultExpandedPage.png)
 *Expanded view of detailed review results and inline comments.*
 
 ### Error Page
-![Error Page](ai-code-review-frontend/public/screenshots/error-page.png)
+![Error Page](ai-code-review-frontend/public/ErrorPage.png)
 *Displays error messages, such as failed to review PR or invalid PR URL.*
 
 ---
