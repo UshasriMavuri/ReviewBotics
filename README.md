@@ -29,7 +29,7 @@ The solution consists of a modern React frontend and a robust Spring Boot backen
 *Landing page highlighting features and call-to-action.*
 
 ### In Progress
-![In Progress](ai-code-review-frontend/public/inprogress.png)
+![In Progress](ai-code-review-frontend/public/InProgress.png)
 *Shows loading or review in progress state after submitting a PR URL.*
 
 ### Review Page
