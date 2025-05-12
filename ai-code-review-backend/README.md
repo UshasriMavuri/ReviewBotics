@@ -1,110 +1,70 @@
-# AI Code Review Assistant
+### 1. Project Description
+`This is the backend for the Smart PR Reviewer project. It provides REST APIs for AI-powered code review.`
 
-An AI-powered code review assistant that automatically reviews pull requests for logic correctness, security vulnerabilities, performance bottlenecks, and best practices.
+### 2. Ollama (LLM) Setup
+**Add after Prerequisites:**
 
-## Features
+## Ollama (LLM) Setup
 
-- Integrates with GitHub/GitLab/Bitbucket
-- Auto-reviews pull requests for:
-  - Logic correctness
-  - Security vulnerabilities
-  - Performance bottlenecks
-  - Style and best practices
-- Understands project-specific context
-- Leaves actionable comments directly on PR lines
-- Suggests:
-  - Missing unit/integration tests
-  - Documentation updates
-  - Refactoring opportunities
+1. Download and install Ollama from [https://ollama.com/](https://ollama.com/)
 
-## Tech Stack
+2. Start the Ollama server:
 
-- Backend: Spring Boot (Java)
-- Git Integration: GitHub Webhooks & GitHub REST API
-- AI Engine: OpenAI API
-- Project Context: YAML/JSON configuration
+   ```ollama serve```
 
-## Prerequisites
 
-- Java 17 or higher
-- Maven
-- OpenAI API key
-- GitHub App credentials
+3. Pull the required model (e.g., CodeLlama):
+ 
+   ```ollama pull codellama```
+
+
+
+### 3. GitHub App Setup
+**Replace/expand the current instructions:**
+```markdown
+## GitHub App Setup
+
+1. Go to GitHub → Settings → Developer settings → GitHub Apps → New GitHub App.
+2. Set permissions for:
+   - Pull requests: Read
+   - Contents: Read
+   - Metadata: Read
+3. Generate and download a private key.
+4. Note your App ID and Webhook Secret.
+5. Install the app on your repository.
+```
+
+### 4. Environment Variables
+**Clarify how to set secrets:**
 
 ## Configuration
 
-1. Create a GitHub App and get the following credentials:
-   - App ID
-   - Private Key
-   - Webhook Secret
+Set the following environment variables (or add them to your `application.yml`):
 
-2. Set the following environment variables:
-   ```bash
-   export GITHUB_APP_ID=your-app-id
-   export GITHUB_PRIVATE_KEY=your-private-key
-   export GITHUB_WEBHOOK_SECRET=your-webhook-secret
-   export OPENAI_API_KEY=your-openai-api-key
-   ```
+```bash
+export GITHUB_APP_ID=your-app-id
+export GITHUB_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+export GITHUB_WEBHOOK_SECRET=your-webhook-secret
+```
 
-3. Configure the application.yml file with your settings.
 
-## Building and Running
+### 5. Running the Backend
+**Clarify the order:**
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/ai-code-review.git
-   cd ai-code-review
-   ```
+## Running the Backend
 
-2. Build the project:
+1. Ensure Ollama is running and the model is pulled.
+2. Start the backend:
    ```bash
    mvn clean install
-   ```
-
-3. Run the application:
-   ```bash
    mvn spring-boot:run
    ```
 
+
+### 6. Usage
+**Clarify manual PR review:**
+
 ## Usage
 
-1. Install the GitHub App on your repository
-2. Configure the webhook URL in your GitHub App settings
-3. Create a pull request
-4. The AI will automatically review the changes and post comments
-
-## Project Structure
-
-```
-src/main/java/com/aicodereview/
-├── controller/
-│   └── WebhookController.java
-├── model/
-│   ├── CodeReview.java
-│   ├── ReviewComment.java
-│   ├── ReviewStatus.java
-│   └── CommentType.java
-├── repository/
-│   └── CodeReviewRepository.java
-├── service/
-│   ├── AIReviewService.java
-│   ├── CodeReviewService.java
-│   ├── GitHubService.java
-│   └── impl/
-│       ├── AIReviewServiceImpl.java
-│       ├── CodeReviewServiceImpl.java
-│       └── GitHubServiceImpl.java
-└── AICodeReviewApplication.java
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details. 
+- Open the frontend and paste your PR details to trigger a review.
+- The backend will fetch PR details from GitHub and use Ollama to generate review comments.

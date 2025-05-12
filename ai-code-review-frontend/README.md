@@ -1,92 +1,106 @@
-# ReviewBotics Frontend
+# AI Code Review Frontend
 
-A modern web application for AI-powered code review assistance. This frontend application provides a user-friendly interface for managing code reviews, repository integrations, and review settings.
+A modern, user-friendly React application for AI-powered code review analysis with seamless GitHub integration.
 
-## Features
+## 🎨 UI/UX Features
 
-- 🎯 AI-powered code review suggestions
-- 🔄 GitHub/GitLab/Bitbucket integration
-- 📊 Review dashboard with statistics
-- 🔍 Advanced search and filtering
-- ⚙️ Customizable review settings
-- 🔔 Notification preferences
+### User Interface
+- Clean, minimalist design with Material-UI components
+- Responsive layout that works on desktop and mobile
+- Dark/Light theme support
+- Intuitive navigation with breadcrumbs
+- Real-time feedback and loading states
+- Error handling with user-friendly messages
 
-## Tech Stack
+### User Experience
+- Single input field for PR URL for quick access
+- Progressive loading of review results
+- Interactive review comments with code snippets
+- Collapsible sections for better content organization
+- Keyboard shortcuts for common actions
+- Toast notifications for important updates
 
-- React 18
-- TypeScript
-- Tailwind CSS
-- Material-UI
-- Framer Motion
-- React Router
+## 🏗️ UI Architecture
 
-## Getting Started
-
-### Prerequisites
-
-- Node.js 16.x or later
-- npm 7.x or later
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/reviewbotics.git
-cd reviewbotics/ai-code-review-frontend
+```
+src/
+├── components/
+│   └── Layout.tsx           # Main layout component
+├── pages/
+│   ├── CodeReview.tsx       # Main code review page
+│   └── Home.tsx             # Landing/home page
+├── services/
+│   └── api.ts               # API service functions
+├── theme/
+│   └── index.ts             # Theme configuration
+├── App.css                  # App-wide styles
+├── App.tsx                  # App root component
+├── index.css                # Global styles
+├── index.tsx                # App entry point
+├── logo.svg                 # App logo
+├── react-app-env.d.ts       # React environment types
+├── reportWebVitals.ts       # Web vitals reporting
+└── setupTests.ts            # Test setup
 ```
 
-2. Install dependencies:
+## 🔄 Integration Features
+
+### GitHub Integration
+- Direct PR URL input support
+- Real-time PR status updates
+- Automatic PR metadata fetching
+- Support for GitHub authentication
+- Webhook integration for updates
+
+### API Integration
+- RESTful API communication
+- Error handling and retry mechanisms
+
+## 🚀 Getting Started
+
+1. **Install dependencies:**
 ```bash
 npm install
 ```
 
-3. Start the development server:
+2. **Configure environment variables:**
+Create a `.env` file in the root directory and add:
+```env
+REACT_APP_API_URL=http://localhost:8080/api
+REACT_APP_GITHUB_CLIENT_ID=your_github_client_id
+```
+
+3. **Start the development server:**
 ```bash
 npm start
 ```
 
-The application will be available at `http://localhost:3000`.
+## 🤝 Contributing
 
-### Building for Production
-
-To create a production build:
-
+1. Create a new branch for your feature:
 ```bash
-npm run build
+git checkout -b feature/your-feature-name
 ```
 
-The build artifacts will be stored in the `build/` directory.
-
-## Development
-
-### Project Structure
-
-```
-src/
-  ├── components/     # Reusable UI components
-  ├── pages/         # Page components
-  ├── hooks/         # Custom React hooks
-  ├── services/      # API services
-  ├── types/         # TypeScript type definitions
-  ├── utils/         # Utility functions
-  └── App.tsx        # Main application component
+2. Make your changes and commit them:
+```bash
+git add .
+git commit -m "feat: add new feature"
 ```
 
-### Available Scripts
+3. Push your branch and create a pull request:
+```bash
+git push origin feature/your-feature-name
+```
 
-- `npm start` - Runs the app in development mode
-- `npm test` - Launches the test runner
-- `npm run build` - Builds the app for production
-- `npm run eject` - Ejects from Create React App
+## 📦 Available Scripts
 
-## Contributing
+- `npm start`: Start development server
+- `npm test`: Run tests
+- `npm run build`: Create production build
+- `npm run lint`: Run ESLint
+- `npm run format`: Format code with Prettier
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
+## 📝 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.

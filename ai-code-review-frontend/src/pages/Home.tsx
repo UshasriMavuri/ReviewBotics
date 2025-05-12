@@ -1,31 +1,31 @@
 import React from 'react';
 import { Box, Container, Typography, Button, Grid, Paper } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import CodeIcon from '@mui/icons-material/Code';
-import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
-import SpeedIcon from '@mui/icons-material/Speed';
 import SecurityIcon from '@mui/icons-material/Security';
+import ArchitectureIcon from '@mui/icons-material/Architecture';
+import ThumbUpIcon from '@mui/icons-material/ThumbUp';
+import DevicesIcon from '@mui/icons-material/Devices';
 
 const features = [
   {
-    icon: <CodeIcon sx={{ fontSize: 40 }} />,
-    title: 'Smart Code Review',
-    description: 'AI-powered analysis of your code changes, providing intelligent suggestions for improvements.',
-  },
-  {
-    icon: <AutoFixHighIcon sx={{ fontSize: 40 }} />,
-    title: 'Best Practices',
-    description: 'Get recommendations based on SOLID principles, design patterns, and coding standards.',
-  },
-  {
-    icon: <SpeedIcon sx={{ fontSize: 40 }} />,
-    title: 'Quick Integration',
-    description: 'Simply paste your PR URL and get instant feedback on your code changes.',
-  },
-  {
     icon: <SecurityIcon sx={{ fontSize: 40 }} />,
-    title: 'Security First',
-    description: 'Your code never leaves your environment. We analyze changes securely and privately.',
+    title: 'Enterprise-Grade Security',
+    description: 'Advanced request sanitization and response filtering with MCP implementation for secure code analysis.',
+  },
+  {
+    icon: <ArchitectureIcon sx={{ fontSize: 40 }} />,
+    title: 'Modern Tech Stack',
+    description: 'Built with cutting-edge technology stack, offering superior performance and scalability.',
+  },
+  {
+    icon: <ThumbUpIcon sx={{ fontSize: 40 }} />,
+    title: 'Seamless Integration',
+    description: 'Easy-to-use PR bot integration with inline discussion capabilities and support for multiple LLMs.',
+  },
+  {
+    icon: <DevicesIcon sx={{ fontSize: 40 }} />,
+    title: 'Cross-Platform',
+    description: 'Works seamlessly across different platforms and development environments.',
   },
 ];
 
