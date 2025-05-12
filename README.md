@@ -22,7 +22,6 @@ The solution consists of a modern React frontend and a robust Spring Boot backen
 
 ## 🖼️ UI Page Screenshots
 
-> _Replace the image paths with your actual screenshot files in the repo (e.g., `/screenshots/home.png`)._
 
 ### Home Screen
 ![Home Screen](ai-code-review-frontend/public/HomeScreen.png)
