@@ -2,6 +2,7 @@ package com.aicodereview.controller;
 
 import com.aicodereview.model.CodeReview;
 import com.aicodereview.service.CodeReviewService;
+import com.aicodereview.util.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,9 @@ public class CodeReviewController {
 
     @Autowired
     private CodeReviewService codeReviewService;
+
+    @Autowired
+    private SecurityUtil securityUtil;
 
     @PostMapping("/review")
     public ResponseEntity<CodeReview> reviewCode(@RequestBody CodeReviewRequest request) {
@@ -36,9 +40,12 @@ public class CodeReviewController {
                 return ResponseEntity.badRequest().body("Missing required parameters");
             }
 
+            String sanitizedRepoName = securityUtil.sanitizeRepositoryName(request.getRepositoryName());
+            String sanitizedPRNumber = securityUtil.sanitizePRNumber(request.getPullRequestId());
+
             CodeReview review = codeReviewService.reviewPullRequest(
-                request.getRepositoryName(),
-                request.getPullRequestId()
+                sanitizedRepoName,
+                sanitizedPRNumber
             );
             
             logger.info("Successfully completed PR review");

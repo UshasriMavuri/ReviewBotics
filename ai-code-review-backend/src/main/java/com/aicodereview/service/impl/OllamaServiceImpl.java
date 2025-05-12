@@ -1,7 +1,6 @@
 package com.aicodereview.service.impl;
 
 import com.aicodereview.service.LLMService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,7 +16,6 @@ import java.util.Map;
 public class OllamaServiceImpl implements LLMService {
 
     private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
 
     @Value("${ollama.api.url:http://localhost:11434}")
     private String ollamaApiUrl;

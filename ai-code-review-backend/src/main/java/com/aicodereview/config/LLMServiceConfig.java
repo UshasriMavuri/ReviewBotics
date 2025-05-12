@@ -21,7 +21,7 @@ public class LLMServiceConfig {
     public LLMService llmService() {
         String provider = llmConfig.getProvider();
         return switch (provider.toLowerCase()) {
-            case "ollama" -> new OllamaServiceImpl(restTemplate, null);
+            case "ollama" -> new OllamaServiceImpl(restTemplate);
             case "openai" -> new OpenAIService(llmConfig);
             default -> throw new IllegalStateException("Unsupported LLM provider: " + provider);
         };

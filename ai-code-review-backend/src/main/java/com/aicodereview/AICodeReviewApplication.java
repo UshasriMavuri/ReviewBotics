@@ -11,5 +11,5 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class AICodeReviewApplication {
     public static void main(String[] args) {
         SpringApplication.run(AICodeReviewApplication.class, args);
-    }
+    } 
 } 

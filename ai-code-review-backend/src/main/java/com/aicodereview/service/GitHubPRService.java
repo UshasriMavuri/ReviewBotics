@@ -15,4 +15,5 @@ public interface GitHubPRService {
     void updateReviewStatus(String repositoryName, String pullRequestId, String status);
     void requestReviewers(String repositoryName, String pullRequestId, List<String> reviewers);
     void verifyWebhookSignature(String payload, String signature);
+    String getPullRequestState(String repositoryName, String pullRequestId);
 } 

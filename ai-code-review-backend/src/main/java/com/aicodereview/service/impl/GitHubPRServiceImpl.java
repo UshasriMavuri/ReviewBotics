@@ -28,6 +28,7 @@ import java.security.interfaces.RSAPublicKey;
 import org.springframework.core.env.Environment;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.aicodereview.model.ReviewStatus;
 
 @Slf4j
 @Service
@@ -257,6 +258,8 @@ public class GitHubPRServiceImpl implements GitHubPRService {
             review.setAuthor((String) user.get("login"));
             review.setTitle((String) prData.get("title"));
             review.setDescription((String) prData.get("body"));
+            review.setStatus(ReviewStatus.valueOf(((String) prData.get("state")).toUpperCase()));
+            System.out.println("PrData-------"+prData);
 
             log.info("Successfully fetched PR details for repository: {} and PR ID: {}", repositoryName, pullRequestId);
             return review;
@@ -336,5 +339,12 @@ public class GitHubPRServiceImpl implements GitHubPRService {
     public void requestReviewers(String repositoryName, String pullRequestId, List<String> reviewers) {
         // This would require authentication
         log.warn("Requesting reviewers requires repository access. This feature is disabled for public access.");
+    }
+
+    @Override
+    public String getPullRequestState(String repositoryName, String pullRequestId) {
+        String url = String.format("https://api.github.com/repos/%s/pulls/%s", repositoryName, pullRequestId);
+        var response = restTemplate.getForObject(url, Map.class);
+        return (String) response.get("state");
     }
 } 

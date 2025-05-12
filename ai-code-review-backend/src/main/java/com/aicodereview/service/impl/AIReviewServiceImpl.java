@@ -5,6 +5,7 @@ import com.aicodereview.model.CommentType;
 import com.aicodereview.service.AIReviewService;
 import com.aicodereview.service.GitHubPRService;
 import com.aicodereview.service.LLMService;
+import com.aicodereview.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,13 +20,15 @@ public class AIReviewServiceImpl implements AIReviewService {
 
     private final GitHubPRService gitHubPRService;
     private final LLMService llmService;
+    private final SecurityUtil securityUtil;
 
     @Override
     public List<ReviewComment> reviewCode(String code, String filePath, String mcpContext) {
         try {
             String prompt = buildReviewPrompt(code, filePath, mcpContext);
             String response = llmService.generateCodeReview(code, mcpContext);
-            return parseReviewResponse(response, filePath);
+            String filteredReview = securityUtil.filterLLMResponse(response);
+            return parseReviewResponse(filteredReview, filePath);
         } catch (Exception e) {
             log.error("Error reviewing code", e);
             throw new RuntimeException("Failed to review code", e);

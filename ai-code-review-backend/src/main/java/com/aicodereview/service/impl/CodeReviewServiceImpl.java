@@ -6,6 +6,7 @@ import com.aicodereview.model.ReviewComment;
 import com.aicodereview.service.AIReviewService;
 import com.aicodereview.service.CodeReviewService;
 import com.aicodereview.service.GitHubPRService;
+import com.aicodereview.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ public class CodeReviewServiceImpl implements CodeReviewService {
 
     private final AIReviewService aiReviewService;
     private final GitHubPRService gitHubPRService;
+    private final SecurityUtil securityUtil;
     private final Map<Long, CodeReview> reviews = new ConcurrentHashMap<>();
     private final AtomicLong idGenerator = new AtomicLong(1);
 
@@ -84,10 +86,13 @@ public class CodeReviewServiceImpl implements CodeReviewService {
             review.setBaseBranch(prDetails.getBaseBranch());
             review.setHeadBranch(prDetails.getHeadBranch());
             review.setCommitSha(prDetails.getCommitSha());
+            review.setStatus(prDetails.getStatus());
 
             // Get PR diff
             String diff = gitHubPRService.getPullRequestDiff(repositoryName, pullRequestId);
             
+             diff = securityUtil.sanitizeCodeContent(diff);
+
             // Process with AI
             List<ReviewComment> comments = aiReviewService.reviewPullRequest(
                 repositoryName,
@@ -117,7 +122,6 @@ public class CodeReviewServiceImpl implements CodeReviewService {
             review.setSuggestedReviewers(String.join(",", suggestedReviewers));
 
             // Update status
-            review.setStatus(ReviewStatus.COMPLETED);
             review.setCompletedAt(LocalDateTime.now());
             
             return updateReview(review.getId(), review);
